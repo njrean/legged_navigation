@@ -139,7 +139,7 @@ class AnymalCNavCfg( LeggedRobotCfg ):
         added_mass_range = [-5., 5.]
         
     class commands( LeggedRobotCfg.commands ):
-        curriculum = True # If true the tracking reward is above 80% of the maximum, increase the range of commands
+        curriculum = False # If true the tracking reward is above 80% of the maximum, increase the range of commands
         max_curriculum = 1.
         
         # limit update command range (use if curriculum is True)
@@ -163,8 +163,8 @@ class AnymalCNavCfg( LeggedRobotCfg ):
             start_height = 0.4
             start_max_radius = 1
 
-            base_height = [start_height, 0.6]   # min max [m]
-            radius = [0.5, start_max_radius]    # min max [m]
+            base_height = [0.2, 0.6]   # min max [m]
+            radius = [0.5, 6]    # min max [m]
             angle = [0, 2 * math.pi]
         
     class rewards( LeggedRobotCfg.rewards ):
@@ -172,7 +172,7 @@ class AnymalCNavCfg( LeggedRobotCfg ):
         only_positive_rewards = False   # if true negative total rewards are clipped at zero (avoids early termination problems)
         guide_reward_stop = True        # if True the reward guide movement direction will remove if task reward reach 50%
         condition_guide_stop = "task_progress"  # use when guide_reward_stop is True: option ['first_iteration', 'task_progress']
-        guide_stop_reach = 0.8
+        guide_stop_reach = 2.0
         
         # sigma parameters
         tracking_height = 0.01          # sigma => tracking reward = exp(-error^2/sigma)
@@ -247,7 +247,7 @@ class AnymalCNavCfgPPO( LeggedRobotCfgPPO ):
         
         # logging
         save_interval = 50 # check for potential saves every this many iterations
-        run_name = 'run10'               # sub experiment of each domain => save as name of folder
+        run_name = 'run'               # sub experiment of each domain => save as name of folder
         experiment_name = 'anymal_c_nav'            # domain of experiment
         
         # load and resume

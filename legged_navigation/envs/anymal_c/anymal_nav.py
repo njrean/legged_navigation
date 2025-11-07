@@ -54,7 +54,7 @@ class AnymalNav(LeggedRobot):
         
         # additional attributes
         # flags
-        self.commands_viz = False   # for visualizing command
+        self.commands_viz = True   # for visualizing command
         # command set waypoints
         self.idx_waypoints = torch.zeros(self.num_envs, dtype=int, device=self.device)
         self.num_waypoints = None
@@ -161,28 +161,30 @@ class AnymalNav(LeggedRobot):
             (self.common_step_counter % self.cfg.env.num_steps_per_env == 0) and
             (self.common_step_counter // self.cfg.env.num_steps_per_env > 0)):
             
-            if "tracking_position" in self.episode_sums.keys():
+            # if "tracking_position" in self.episode_sums.keys():
+            # print(self.extras["episode"]["reach_rate"])
 
-                if  (( self.cfg.rewards.condition_guide_stop == 'task_progress' and
-                    torch.mean(self.episode_sums["tracking_position"][env_ids]) / self.max_episode_length > self.cfg.rewards.guide_stop_reach) 
-                    or
-                    (self.cfg.rewards.condition_guide_stop == 'first_iteration')):
-                
-                    self.reward_names.remove("guide")
-                    self.reward_functions.remove(self._reward_guide)
-                    self.episode_sums["guide"] = torch.zeros(self.num_envs, device=self.device)
-                    del self.reward_scales["guide"]
+            if  (( self.cfg.rewards.condition_guide_stop == 'task_progress' and
+                # torch.mean(self.episode_sums["tracking_position"][env_ids]) / self.max_episode_length > self.cfg.rewards.guide_stop_reach) 
+                self.extras["episode"]["reach_rate"] > self.cfg.rewards.guide_stop_reach) 
+                or
+                (self.cfg.rewards.condition_guide_stop == 'first_iteration')):
+            
+                self.reward_names.remove("guide")
+                self.reward_functions.remove(self._reward_guide)
+                self.episode_sums["guide"] = torch.zeros(self.num_envs, device=self.device)
+                del self.reward_scales["guide"]
 
-            else:
-                if  (( self.cfg.rewards.condition_guide_stop == 'task_progress' and
-                    self.extras["episode"]["reach_rate"]  >= 0.8)
-                    or
-                    (self.cfg.rewards.condition_guide_stop == 'first_iteration')):
+            # else:
+            #     if  (( self.cfg.rewards.condition_guide_stop == 'task_progress' and
+            #         self.extras["episode"]["reach_rate"]  >= 0.8)
+            #         or
+            #         (self.cfg.rewards.condition_guide_stop == 'first_iteration')):
                 
-                    self.reward_names.remove("guide")
-                    self.reward_functions.remove(self._reward_guide)
-                    self.episode_sums["guide"] = torch.zeros(self.num_envs, device=self.device)
-                    del self.reward_scales["guide"]
+            #         self.reward_names.remove("guide")
+            #         self.reward_functions.remove(self._reward_guide)
+            #         self.episode_sums["guide"] = torch.zeros(self.num_envs, device=self.device)
+            #         del self.reward_scales["guide"]
 
 
         # reset robot states
@@ -209,7 +211,7 @@ class AnymalNav(LeggedRobot):
         if self.cfg.commands.curriculum:
             self.extras["episode"]["max_command_radius"] = self.command_ranges["radius"][1]
             self.extras["episode"]["min_command_height"] = self.command_ranges["base_height"][0]
-            self.extras["episode"]["reach_rate"] = torch.count_nonzero(self.reach_goal_count[env_ids]) / len(env_ids)
+        self.extras["episode"]["reach_rate"] = torch.count_nonzero(self.reach_goal_count[env_ids]) / len(env_ids)
         # send timeout info to the algorithm
         if self.cfg.env.send_timeouts:
             self.extras["time_outs"] = self.time_out_buf

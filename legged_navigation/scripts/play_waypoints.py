@@ -53,6 +53,7 @@ import torch
 def play(args):
     load_dir = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', args.task)
     load_folder = [f for f in os.listdir(load_dir) if args.run_name in f]
+
     if load_folder == []:
         print("Error; not found that run_name in {} task".format(args.task))
         return
@@ -60,14 +61,14 @@ def play(args):
         print("Warning; found that run_name in {} task more than 1 !!!".format(args.task))
     args.load_run = load_folder[0]
     load_path = os.path.join(load_dir, args.load_run)
-    
+   
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     # write over config from saved file
     helpers.rideover_cfg(load_path, env_cfg, train_cfg)
 
     # override some parameters for testing
     env_cfg.commands.reachgoal_resample = True              # change mode to resample when the agent reach the goal
-    env_cfg.env.num_envs = min(env_cfg.env.num_envs, 5)     # limit number of visualization environments
+    env_cfg.env.num_envs = min(env_cfg.env.num_envs, 100)     # limit number of visualization environments
     env_cfg.terrain.num_rows = 1
     env_cfg.terrain.num_cols = 1
     env_cfg.terrain.curriculum = False
@@ -76,23 +77,51 @@ def play(args):
     env_cfg.domain_rand.randomize_friction = False
     env_cfg.domain_rand.push_robots = False
     
-    time_play_s = 30
+    time_play_s = 20
     env_cfg.env.episode_length_s = time_play_s
     env_cfg.commands.resampling_time = time_play_s + 1
-    env_cfg.commands.ranges.radius[0] = 5
-    env_cfg.commands.ranges.radius[1] = 5
-    env_cfg.commands.ranges.base_height[0] = 0.6
+    # env_cfg.commands.
+    env_cfg.commands.ranges.radius[0] = 1
+    env_cfg.commands.ranges.radius[1] = 6
+    env_cfg.commands.ranges.base_height[0] = 0.45
 
     # set ways point command (if need)
     # waypoints = [[2, 0, 0.4], [4, 0, 0.3], [6, 0, 0.2], [8, 0, 0.2], [10, 0, 0.4]] # [x, y, z]
-    waypoints = [[2, 0, 0.25], [-2, 0, 0.25], [2, 0, 0.25], [-2, 0, 0.25]]
-    num_waypoints = 0 * len(waypoints) # if set = 0 command will random
+    # waypoints = [[0.5, 0, 0.4], 
+    #              [2, 0, 0.3], 
+    #              [2.5, 0, 0.2], 
+    #              [3, 0, 0.2], 
+    #              [3.5, 0, 0.2], 
+    #              [4, 0, 0.3], 
+    #              [4.5, 0, 0.4],
+    #              [10, 0, 0.47]] # [x, y, z]
+
+    # waypoints = [[1, 0, 0.4], 
+    #              [2, 0, 0.3], 
+    #              [3, 0, 0.2], 
+    #              [4, 0, 0.2], 
+    #              [5.5, 0, 0.2], 
+    #              [6, 0, 0.2], 
+    #              [7, 0, 0.4],
+    #              [8, 0, 0.47]] # [x, y, z]
+    
+
+    # waypoints = []    # random 
+    waypoints = [[3, 0, 0.45], [4.5, 0, 0.4], [6, 0, 0.3], [7.5, 0, 0.2], [9, 0, 0.3], [10.5, 0, 0.45], [12, 0, 0.45]]    # custom
+    # waypoints = [[6, 0, 0.45], [0, 0, 0.45], [6, 0, 0.45], [0, 0, 0.45]]    # x independent
+    # waypoints = [[0, 3, 0.45], [0, -3, 0.45], [0, 3, 0.45], [0, -3, 0.45]]    # y independent
+    # waypoints = [[0, 0, 0.2], [0, 0, 0.45], [0, 0, 0.2], [0, 0, 0.45]]      # z independent
+    # waypoints = [[3, 3, 0.45], [6, 0, 0.45], [9, 3, 0.45], [6, 0, 0.45], [3, 3, 0.45], [0, 0, 0.45]]   # xy 
+    # waypoints = [[3, 3, 0.2], [6, 0, 0.45], [9, 3, 0.2], [6, 0, 0.45], [3, 3, 0.2], [0, 0, 0.45]]      # xyz 
+    # waypoints = [[3, 3, 0.2], [6, 0, 0.2], [9, 3, 0.2], [6, 0, 0.2], [3, 3, 0.2], [0, 0, 0.45]]      # xyz 
+
+    num_waypoints = len(waypoints) # if set = 0 command will random
     if num_waypoints != 0:
         env_cfg.env.num_envs = 1
     
     # set viewer pos and lookat
-    env_cfg.viewer.pos = [11, 5, 2]     #[11, 5, 2]
-    env_cfg.viewer.lookat = [0, 0, 0]    #[8, 8, 0]
+    env_cfg.viewer.pos = [6, -9, 2]     #[11, 5, 2]
+    env_cfg.viewer.lookat = [6, 0, 0]    #[8, 8, 0]
 
     move_came = False
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
@@ -151,10 +180,12 @@ def play(args):
         export_policy_as_jit(ppo_runner.alg.actor_critic, path)
         print('Exported policy as jit script to: ', path)
 
+    agentExist = [1] * env_cfg.env.num_envs
+
     for i in range(int(num_steps)):
         actions = policy(obs.detach())
         obs, _, rews, dones, infos = env.step(actions.detach())
- 
+
         if RECORD_FRAMES:
             if i % 2:
                 filename = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'frames', f"{img_idx}.png")
@@ -163,7 +194,37 @@ def play(args):
         if move_came or MOVE_CAMERA:
             camera_position += camera_vel * env.dt
             env.set_camera(camera_position, camera_position + camera_direction)
-    
+
+        logger_save.log_states({
+                    'dof_pos_target': actions[robot_index, joint_index].item() * env.cfg.control.action_scale,
+                    'dof_pos': env.dof_pos[robot_index, joint_index].item(),
+                    'dof_vel': env.dof_vel[robot_index, joint_index].item(),
+                    'dof_torque': env.torques[robot_index, joint_index].item(),
+                    'command_x': env.commands[robot_index, 0].item(),
+                    'command_y': env.commands[robot_index, 1].item(),
+                    'command_z': env.commands[robot_index, 2].item(),
+                    'base_roll' : env.base_euler[robot_index, 0].item(),
+                    'base_pitch' : env.base_euler[robot_index, 1].item(),
+                    'base_yaw' : env.base_euler[robot_index, 2].item(),
+                    'base_pos_x' : env.base_mean_height[robot_index].item(),    
+                    'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
+                    'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
+                    'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
+                    'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
+                    'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy(),
+                    'robot_x' : env.root_states[robot_index, 0].item(),
+                    'robot_y' : env.root_states[robot_index, 1].item(),
+                    'robot_z' : env.root_states[robot_index, 2].item()
+                })
+        
+        teminateEnv =dones.nonzero().tolist() 
+        if teminateEnv != []:
+            teminateEnvIdx = teminateEnv[0]
+            for envIdx in teminateEnvIdx:
+                agentExist[envIdx] = 0
+
+    print("Sucess rate (from reach goal only reachgoal_resample = FALSE ):", torch.sum(env.reach_goal_buf).item() / env_cfg.env.num_envs )
+    print("Sucess rate (from not terminate):", sum( agentExist ) / env_cfg.env.num_envs )
     helpers.save_log(logger_save.state_log, load_path, 'state_log.pkl')
 
 if __name__ == '__main__':

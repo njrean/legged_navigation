@@ -1,1 +1,5 @@
-python train.py --task=anymal_c_nav --headless
+python train.py --task=anymal_c_nav --run_name=run_11_01 --seed=1 --headless
+python train.py --task=anymal_c_nav --run_name=run_11_02 --seed=2 --headless
+python train.py --task=anymal_c_nav --run_name=run_11_03 --seed=3 --headless
+python train.py --task=anymal_c_nav --run_name=run_11_04 --seed=4 --headless
+python train.py --task=anymal_c_nav --run_name=run_11_05 --seed=5 --headless
